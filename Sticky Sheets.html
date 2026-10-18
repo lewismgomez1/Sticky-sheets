@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Sticky Sheets</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#ffffff">
+<style>
+/* Deliberately single-theme per spec: white ground, black SF text, pastel cards */
+:root{
+  --bg:#ffffff; --ink:#111111; --soft:#8a8a8e; --line:#e3e3e8; --accent:#111111;
+  --blue:#B9D9F7; --green:#C4EACB; --pink:#F8C9DB; --yellow:#FBF0A8; --orange:#FFD9AE; --red:#F7BFB5; --purple:#DECDF4;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+  font-size:16px;line-height:1.4;
+  padding-top:env(safe-area-inset-top);
+  overscroll-behavior-y:none;
+}
+button,input,textarea{font:inherit;color:inherit;-webkit-appearance:none;border:none;background:none}
+button{cursor:pointer}
+
+/* ---------- header ---------- */
+.stick{position:sticky;top:0;z-index:30;background:var(--bg)}
+.brand{display:flex;align-items:center;gap:9px;padding:10px 14px 2px}
+.brand svg{width:30px;height:30px;flex:0 0 auto}
+.brand .wm{font-size:19px;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.brand .wm span{color:var(--soft);font-weight:600}
+.hdr{
+  background:var(--bg);
+  display:flex;align-items:flex-end;gap:8px;
+  padding:6px 12px 0 10px;border-bottom:1.5px solid var(--line);
+}
+.tabs{display:flex;align-items:flex-end;gap:4px;overflow-x:auto;flex:1;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+.tabs::-webkit-scrollbar{display:none}
+.tab{
+  flex:0 0 auto;max-width:42vw;
+  padding:7px 14px 8px;font-size:13.5px;font-weight:600;color:var(--soft);
+  border:1.5px solid var(--line);border-bottom:none;border-radius:9px 9px 0 0;
+  background:#f4f4f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transform:translateY(1.5px);user-select:none;-webkit-user-select:none;touch-action:manipulation;
+}
+.tab.on{background:var(--bg);color:var(--ink);border-color:var(--line);position:relative}
+.tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:3px;background:var(--bg)}
+.tab.addtab{font-weight:700;color:var(--soft);padding:7px 12px 8px}
+.tabedit{display:flex;align-items:center;gap:6px;background:#f4f4f6;border:1.5px solid var(--line);border-bottom:none;border-radius:9px 9px 0 0;padding:4px 8px 5px;transform:translateY(1.5px)}
+.tabedit input{width:110px;font-size:13.5px;font-weight:600;padding:3px 6px;background:var(--bg);border-radius:6px;border:1px solid var(--line)}
+.tabedit button{font-size:15px;padding:2px 4px}
+.addbtn{
+  flex:0 0 auto;width:38px;height:38px;margin-bottom:6px;border-radius:12px;
+  background:var(--ink);color:#fff;font-size:24px;font-weight:600;line-height:1;
+  display:flex;align-items:center;justify-content:center;
+}
+.addbtn:active{transform:scale(.92)}
+
+/* ---------- composer ---------- */
+.composer{padding:12px 14px;border-bottom:1px solid var(--line);background:var(--bg)}
+.composer input{
+  width:100%;padding:12px 14px;font-size:16px;border:1.5px solid var(--line);border-radius:12px;background:#fafafa;
+}
+.composer input:focus{outline:none;border-color:#9a9aa0}
+.swatches{display:flex;gap:12px;justify-content:space-between;padding:14px 4px 6px}
+.sw{width:38px;height:38px;border-radius:50%;border:2px solid rgba(0,0,0,.08);flex:0 0 auto}
+.sw:active{transform:scale(.9)}
+.chint{font-size:12.5px;color:var(--soft);padding-top:10px;text-align:center}
+.cancelrow{text-align:center;padding:8px 0 2px}
+.cancelrow button{color:var(--soft);font-size:14px;text-decoration:underline}
+
+/* ---------- list ---------- */
+.list{padding:14px 14px calc(40px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px}
+.card{
+  width:100%;border-radius:14px;padding:14px 16px;color:#111;
+  box-shadow:0 1px 3px rgba(0,0,0,.10);
+  touch-action:pan-y;position:relative;user-select:none;-webkit-user-select:none;
+  will-change:transform;word-wrap:break-word;
+}
+.card .txt{white-space:pre-wrap}
+.card textarea{
+  width:100%;background:rgba(255,255,255,.55);border-radius:8px;padding:8px;resize:none;color:#111;border:1.5px dashed rgba(0,0,0,.25);
+}
+.card textarea:focus{outline:none}
+.card.sm .txt{font-size:17px}
+.card.md .txt{font-size:15.5px}
+.card.lg .txt{font-size:14px}
+.pop{animation:pop .28s cubic-bezier(.3,1.5,.6,1)}
+@keyframes pop{0%{transform:scale(.7);opacity:0}100%{transform:scale(1);opacity:1}}
+.flyR{transition:transform .28s ease-in,opacity .28s;transform:translateX(115%) !important;opacity:0}
+.flyL{transition:transform .28s ease-in,opacity .28s;transform:translateX(-115%) !important;opacity:0}
+.collapse{transition:height .22s ease,margin .22s ease,padding .22s ease;height:0 !important;margin:0 !important;padding:0 !important;overflow:hidden}
+
+.emptymsg{color:var(--soft);text-align:center;padding:48px 20px;font-size:15px}
+.donebtn{
+  margin-top:6px;align-self:center;color:var(--soft);font-size:14px;font-weight:600;
+  padding:10px 18px;border:1.5px solid var(--line);border-radius:20px;background:#fafafa;
+}
+.donewrap{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.card.done{opacity:.62}
+.card.done .txt{text-decoration:line-through}
+.card.done .ago{font-size:11px;color:rgba(0,0,0,.5);margin-top:6px}
+.donenote{font-size:12px;color:var(--soft);text-align:center;padding:4px 0 0}
+
+/* ---------- toast & confirm ---------- */
+.toast{
+  position:fixed;left:50%;bottom:calc(30px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(20px);
+  background:#111;color:#fff;font-size:14px;font-weight:600;padding:10px 18px;border-radius:20px;
+  opacity:0;pointer-events:none;transition:all .25s;z-index:60;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.veil{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:40;display:flex;align-items:flex-end;justify-content:center}
+.sheetbox{
+  background:var(--bg);border-radius:18px 18px 0 0;width:100%;max-width:480px;
+  padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+}
+.sheetbox h3{font-size:16px;text-align:center;padding-bottom:14px;font-weight:600}
+.sheetbox .big{
+  display:block;width:100%;padding:14px;border-radius:12px;font-size:16px;font-weight:700;text-align:center;margin-top:8px;
+}
+.sheetbox .del{background:#fdeae7;color:#c0392b}
+.sheetbox .neutral{background:#f2f2f5;color:var(--ink)}
+.hidden{display:none !important}
+/* ---------- dates, counts, undo ---------- */
+.due{display:inline-block;margin-top:8px;font-size:12px;font-weight:700;padding:2px 9px;border-radius:12px;background:rgba(255,255,255,.6);color:#222}
+.due.past{background:rgba(192,57,43,.15);color:#9b2c21}
+.due.today{background:rgba(0,0,0,.78);color:#fff}
+.daterow{display:flex;align-items:center;gap:10px;padding-top:10px;font-size:13.5px;color:var(--soft);flex-wrap:wrap}
+.daterow input[type=date]{padding:7px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fafafa;font-size:14px;color:var(--ink);min-width:140px}
+.daterow button{color:var(--soft);font-size:13px;text-decoration:underline}
+.daterow .savebtn{margin-left:auto;background:#111;color:#fff;text-decoration:none;font-weight:700;padding:7px 14px;border-radius:10px;font-size:13.5px}
+.card .daterow{color:#333}
+.card .daterow input[type=date]{background:rgba(255,255,255,.6);border-color:rgba(0,0,0,.2)}
+.card .daterow button{color:#333}
+.tab .cnt{font-weight:600;opacity:.65;margin-left:3px;font-size:12px}
+.toast.show{pointer-events:auto}
+.toast button{margin-left:14px;color:#FBF0A8;font-weight:800;text-decoration:underline;font-size:14px}
+</style>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🗒️</text></svg>">
+</head>
+<body>
+<div class="stick">
+  <div class="brand" aria-label="Sticky Sheets">
+    <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="6" y="14" width="36" height="36" rx="7" transform="rotate(-8 24 32)" fill="#B9D9F7"/>
+      <rect x="16" y="10" width="36" height="36" rx="7" transform="rotate(5 34 28)" fill="#F8C9DB"/>
+      <path d="M22 18h30a5 5 0 0 1 5 5v22l-13 13H22a5 5 0 0 1-5-5V23a5 5 0 0 1 5-5z" fill="#FBF0A8"/>
+      <path d="M57 45 44 58V50a5 5 0 0 1 5-5h8z" fill="#E8D66F"/>
+      <path d="M26 30h20M26 38h14" stroke="#111" stroke-width="3" stroke-linecap="round" opacity=".75"/>
+    </svg>
+    <div class="wm">Sticky <span>Sheets</span></div>
+  </div>
+  <div class="hdr">
+    <div class="tabs" id="tabs"></div>
+    <button class="addbtn" id="newtask" aria-label="Add task">+</button>
+  </div>
+</div>
+<div class="composer hidden" id="composer"></div>
+<div class="list" id="list"></div>
+<div class="toast" id="toast">Task completed</div>
+<div id="overlay"></div>
+
+<script>
+"use strict";
+const $=(s,el)=>(el||document).querySelector(s);
+const COLORS=[["blue","#B9D9F7"],["green","#C4EACB"],["pink","#F8C9DB"],["yellow","#FBF0A8"],["orange","#FFD9AE"],["red","#F7BFB5"],["purple","#DECDF4"]];
+const CMAP=Object.fromEntries(COLORS);
+const LS="sticky-sheets-v1";
+const uid=()=>"t"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+
+let DB=null, storageOK=true;
+function load(){
+  try{const raw=localStorage.getItem(LS);if(raw){DB=JSON.parse(raw);return;}}catch(e){storageOK=false;}
+  DB={active:0,sheets:[{id:uid(),name:"School",tasks:[]},{id:uid(),name:"Personal",tasks:[]}]};
+}
+function save(){try{localStorage.setItem(LS,JSON.stringify(DB));}catch(e){storageOK=false;}}
+function sheet(){if(DB.active>=DB.sheets.length)DB.active=0;return DB.sheets[DB.active];}
+function purge(){
+  const cut=Date.now()-24*3600*1000;let ch=false;
+  DB.sheets.forEach(s=>{const n=s.tasks.filter(t=>!(t.done&&t.completedAt&&t.completedAt<cut));if(n.length!==s.tasks.length){s.tasks=n;ch=true;}});
+  if(ch)save();
+}
+
+/* ---------- state for UI modes ---------- */
+let editingTabId=null, addingTab=false, composing=false, pendingText=null, pendingDate=null, showDone=false;
+const todayStr=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");};
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function dueInfo(ds){
+  if(!ds)return null;
+  const t=todayStr();
+  const [y,m,d]=ds.split("-").map(Number);
+  const label=MON[m-1]+" "+d;
+  if(ds===t)return {label:"Today",cls:"today"};
+  const tm=new Date();tm.setDate(tm.getDate()+1);
+  const tms=tm.getFullYear()+"-"+String(tm.getMonth()+1).padStart(2,"0")+"-"+String(tm.getDate()).padStart(2,"0");
+  if(ds===tms)return {label:"Tomorrow",cls:""};
+  if(ds<t)return {label:label+" · past",cls:"past"};
+  return {label:label,cls:""};
+}
+
+/* ---------- tabs ---------- */
+function renderTabs(){
+  const w=$("#tabs");w.innerHTML="";
+  DB.sheets.forEach((s,i)=>{
+    if(editingTabId===s.id){
+      const box=document.createElement("div");box.className="tabedit";
+      const inp=document.createElement("input");inp.value=s.name;inp.maxLength=20;
+      const del=document.createElement("button");del.textContent="🗑";del.setAttribute("aria-label","Delete sheet");
+      const ok=document.createElement("button");ok.textContent="✓";ok.style.fontWeight="800";
+      box.append(inp,del,ok);w.appendChild(box);
+      const commit=()=>{const v=inp.value.trim();if(v)s.name=v;editingTabId=null;save();renderTabs();};
+      ok.onclick=commit;
+      inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();commit();}};
+      del.onclick=()=>confirmSheet(s,i);
+      setTimeout(()=>{inp.focus();inp.select();},50);
+      return;
+    }
+    const b=document.createElement("button");
+    b.className="tab"+(i===DB.active?" on":"");
+    const n=s.tasks.filter(t=>!t.done).length;
+    b.textContent=s.name;
+    if(n){const c=document.createElement("span");c.className="cnt";c.textContent="("+n+")";b.appendChild(c);}
+    b.onclick=()=>{if(editingTabId)return;DB.active=i;showDone=false;save();render();};
+    longPress(b,()=>{editingTabId=s.id;DB.active=i;renderTabs();});
+    w.appendChild(b);
+  });
+  if(addingTab){
+    const box=document.createElement("div");box.className="tabedit";
+    const inp=document.createElement("input");inp.placeholder="sheet name";inp.maxLength=20;inp.setAttribute("enterkeyhint","done");
+    const no=document.createElement("button");no.textContent="✕";no.setAttribute("aria-label","Cancel");
+    const ok=document.createElement("button");ok.textContent="✓";ok.style.fontWeight="800";ok.setAttribute("aria-label","Create sheet");
+    box.append(inp,no,ok);w.appendChild(box);
+    const commit=()=>{
+      const v=inp.value.trim();
+      addingTab=false;
+      if(v){DB.sheets.push({id:uid(),name:v.slice(0,20),tasks:[]});DB.active=DB.sheets.length-1;save();render();}
+      else renderTabs();
+    };
+    ok.onclick=commit;
+    no.onclick=()=>{addingTab=false;renderTabs();};
+    inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();commit();}if(e.key==="Escape"){addingTab=false;renderTabs();}};
+    setTimeout(()=>{inp.focus();box.scrollIntoView({inline:"end",block:"nearest"});},50);
+    return;
+  }
+  const add=document.createElement("button");
+  add.className="tab addtab";add.textContent="+";add.setAttribute("aria-label","New sheet");
+  add.onclick=()=>{if(editingTabId)return;addingTab=true;renderTabs();};
+  w.appendChild(add);
+}
+function confirmSheet(s,i){
+  overlay('<div class="sheetbox"><h3>Delete the sheet “'+esc(s.name)+'” and everything on it?</h3>'+
+  '<button class="big del" id="ovdel">Delete sheet</button><button class="big neutral" id="ovcancel">Cancel</button></div>',
+  ()=>{ $("#ovdel").onclick=()=>{
+      DB.sheets.splice(i,1);
+      if(!DB.sheets.length)DB.sheets.push({id:uid(),name:"School",tasks:[]});
+      DB.active=0;editingTabId=null;save();closeOverlay();render();
+    };
+    $("#ovcancel").onclick=()=>{editingTabId=null;closeOverlay();renderTabs();};
+  });
+}
+
+/* ---------- composer (type task -> pick color) ---------- */
+function openComposer(){
+  composing=true;pendingText=null;pendingDate=null;drawComposer();
+}
+function drawComposer(){
+  const c=$("#composer");c.classList.remove("hidden");
+  if(pendingText===null){
+    c.innerHTML='<input id="taskinp" type="text" placeholder="type task" enterkeyhint="done" autocomplete="off">'+
+      '<div class="daterow"><span>Date (optional)</span><input type="date" id="taskdate"><button id="nextbtn" class="savebtn">Next</button></div>'+
+      '<div class="cancelrow"><button id="ccancel">cancel</button></div>';
+    const inp=$("#taskinp");
+    const go=()=>{const v=inp.value.trim();if(v){pendingText=v;pendingDate=$("#taskdate").value||null;drawComposer();}else inp.focus();};
+    inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();go();}};
+    $("#nextbtn").onclick=go;
+    $("#ccancel").onclick=closeComposer;
+    setTimeout(()=>inp.focus(),60);
+  }else{
+    c.innerHTML='<div class="chint">pick a color</div><div class="swatches">'+
+      COLORS.map(x=>'<button class="sw" data-c="'+x[0]+'" style="background:'+x[1]+'" aria-label="'+x[0]+'"></button>').join("")+
+      '</div><div class="cancelrow"><button id="ccancel">cancel</button></div>';
+    c.querySelectorAll(".sw").forEach(b=>{
+      b.onclick=()=>{
+        sheet().tasks.unshift({id:uid(),text:pendingText,date:pendingDate,color:b.getAttribute("data-c"),done:false,completedAt:null,fresh:true});
+        save();closeComposer();render();
+      };
+    });
+    $("#ccancel").onclick=closeComposer;
+  }
+}
+function closeComposer(){composing=false;pendingText=null;pendingDate=null;$("#composer").classList.add("hidden");$("#composer").innerHTML="";}
+
+/* ---------- list ---------- */
+function sizeClass(t){return t.length<=60?"sm":(t.length<=160?"md":"lg");}
+function esc(t){const d=document.createElement("span");d.textContent=t==null?"":t;return d.innerHTML;}
+function render(){
+  renderTabs();
+  const list=$("#list");list.innerHTML="";
+  const s=sheet();
+  const open=s.tasks.filter(t=>!t.done);
+  const done=s.tasks.filter(t=>t.done);
+  if(!open.length&&!done.length){
+    const m=document.createElement("div");m.className="emptymsg";
+    m.textContent="Nothing on this sheet. Tap + to add a task.";
+    list.appendChild(m);
+  }
+  open.forEach(t=>list.appendChild(card(t)));
+  if(done.length){
+    const btn=document.createElement("button");
+    btn.className="donebtn";
+    btn.textContent=(showDone?"Hide":"Show")+" completed tasks ("+done.length+")";
+    btn.onclick=()=>{showDone=!showDone;render();};
+    list.appendChild(btn);
+    if(showDone){
+      const wrap=document.createElement("div");wrap.className="donewrap";
+      done.sort((a,b)=>b.completedAt-a.completedAt).forEach(t=>wrap.appendChild(card(t)));
+      const note=document.createElement("div");note.className="donenote";
+      note.textContent="Completed tasks disappear after 24 hours.";
+      wrap.appendChild(note);
+      list.appendChild(wrap);
+    }
+  }
+  if(!storageOK){
+    const warn=document.createElement("div");warn.className="donenote";
+    warn.textContent="Heads up: this browser isn't saving — tasks may not survive closing the app.";
+    list.appendChild(warn);
+  }
+}
+function card(t){
+  const el=document.createElement("div");
+  el.className="card "+sizeClass(t.text)+(t.done?" done":"");
+  el.style.background=CMAP[t.color]||CMAP.yellow;
+  const txt=document.createElement("div");txt.className="txt";txt.textContent=t.text;
+  el.appendChild(txt);
+  const di=dueInfo(t.date);
+  if(di){const p=document.createElement("div");p.className="due "+(t.done?"":di.cls);p.textContent=di.label;el.appendChild(p);}
+  if(t.done&&t.completedAt){
+    const ago=document.createElement("div");ago.className="ago";
+    const h=Math.max(0,Math.floor((Date.now()-t.completedAt)/3600000));
+    ago.textContent="completed "+(h<1?"just now":h+"h ago")+" · gone in "+(24-h)+"h · tap to restore";
+    el.appendChild(ago);
+  }
+  if(t.fresh){el.classList.add("pop");delete t.fresh;}
+  if(!t.done){
+    el.addEventListener("click",e=>{if(!el.dataset.swiped&&!el.querySelector("textarea"))editTask(t,el,txt);});
+    swipeable(el,t);
+  }else{
+    el.addEventListener("click",()=>{restore(t);toast("Task restored");});
+  }
+  longPress(el,()=>confirmDelete(t));
+  return el;
+}
+function restore(t){t.done=false;t.completedAt=null;save();render();}
+
+/* ---------- edit in place ---------- */
+function editTask(t,el,txt){
+  if(el.querySelector("textarea"))return;
+  const ta=document.createElement("textarea");
+  ta.value=t.text;ta.rows=Math.min(6,Math.max(2,Math.ceil(t.text.length/40)));
+  el.replaceChild(ta,txt);
+  const old=el.querySelector(".due");if(old)old.remove();
+  const row=document.createElement("div");row.className="daterow";
+  row.innerHTML='<span>Date</span><input type="date" value="'+(t.date||"")+'"><button type="button" class="clr">clear</button><button type="button" class="savebtn">Save</button>';
+  el.appendChild(row);
+  const dinp=row.querySelector("input");
+  row.querySelector(".clr").onclick=e=>{e.stopPropagation();dinp.value="";};
+  row.addEventListener("click",e=>e.stopPropagation());
+  ta.addEventListener("click",e=>e.stopPropagation());
+  ta.focus();ta.setSelectionRange(ta.value.length,ta.value.length);
+  let saved=false;
+  const doneEdit=()=>{
+    if(saved)return;saved=true;
+    const v=ta.value.trim();
+    if(v)t.text=v;
+    t.date=dinp.value||null;
+    save();render();
+  };
+  row.querySelector(".savebtn").onclick=e=>{e.stopPropagation();doneEdit();};
+  ta.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();doneEdit();}};
+  const maybeBlur=()=>{setTimeout(()=>{if(saved)return;const a=document.activeElement;if(a&&el.contains(a))return;doneEdit();},150);};
+  ta.onblur=maybeBlur;dinp.onblur=maybeBlur;
+}
+
+/* ---------- swipe to complete ---------- */
+function swipeable(el,t){
+  let sx=0,sy=0,dx=0,active=false,horiz=false;
+  el.addEventListener("touchstart",e=>{
+    if(el.querySelector("textarea")){active=false;return;}
+    const p=e.touches[0];sx=p.clientX;sy=p.clientY;dx=0;active=true;horiz=false;
+    el.style.transition="none";
+  },{passive:true});
+  el.addEventListener("touchmove",e=>{
+    if(!active)return;
+    const p=e.touches[0];dx=p.clientX-sx;const dy=p.clientY-sy;
+    if(!horiz){
+      if(Math.abs(dx)>12&&Math.abs(dx)>Math.abs(dy)*1.3)horiz=true;
+      else if(Math.abs(dy)>12){active=false;return;}
+    }
+    if(horiz){el.style.transform="translateX("+dx+"px)";el.style.opacity=String(Math.max(.4,1-Math.abs(dx)/420));}
+  },{passive:true});
+  el.addEventListener("touchend",()=>{
+    if(!active)return;active=false;
+    el.style.transition="";
+    if(horiz&&Math.abs(dx)>90){
+      el.dataset.swiped="1";
+      el.classList.add(dx>0?"flyR":"flyL");
+      setTimeout(()=>{
+        const h=el.offsetHeight;el.style.height=h+"px";void el.offsetHeight;el.classList.add("collapse");
+      },240);
+      setTimeout(()=>{
+        t.done=true;t.completedAt=Date.now();save();render();
+        toast("Task completed ✓",()=>{restore(t);toast("Task restored");});
+      },460);
+    }else{
+      el.style.transform="";el.style.opacity="";
+    }
+  });
+}
+
+/* ---------- long press ---------- */
+function longPress(el,fn){
+  let timer=null,moved=false,x0=0,y0=0;
+  const start=e=>{
+    moved=false;
+    const p=e.touches?e.touches[0]:e;x0=p.clientX;y0=p.clientY;
+    timer=setTimeout(()=>{if(!moved){fn();if(navigator.vibrate)navigator.vibrate(10);}},520);
+  };
+  const move=e=>{
+    const p=e.touches?e.touches[0]:e;
+    if(Math.abs(p.clientX-x0)>10||Math.abs(p.clientY-y0)>10){moved=true;clearTimeout(timer);}
+  };
+  const end=()=>clearTimeout(timer);
+  el.addEventListener("touchstart",start,{passive:true});
+  el.addEventListener("touchmove",move,{passive:true});
+  el.addEventListener("touchend",end);el.addEventListener("touchcancel",end);
+  el.addEventListener("mousedown",start);el.addEventListener("mousemove",move);
+  el.addEventListener("mouseup",end);el.addEventListener("mouseleave",end);
+  el.addEventListener("contextmenu",e=>e.preventDefault());
+}
+
+/* ---------- delete confirm ---------- */
+function confirmDelete(t){
+  overlay('<div class="sheetbox"><h3>Delete this task?</h3>'+
+  '<button class="big del" id="ovdel">Delete</button><button class="big neutral" id="ovcancel">Cancel</button></div>',
+  ()=>{
+    $("#ovdel").onclick=()=>{const s=sheet();s.tasks=s.tasks.filter(x=>x.id!==t.id);save();closeOverlay();render();};
+    $("#ovcancel").onclick=closeOverlay;
+  });
+}
+
+/* ---------- overlay & toast ---------- */
+function overlay(html,wire){
+  const o=$("#overlay");
+  o.innerHTML='<div class="veil">'+html+'</div>';
+  o.firstChild.addEventListener("click",e=>{if(e.target===o.firstChild)closeOverlay();});
+  wire&&wire();
+}
+function closeOverlay(){$("#overlay").innerHTML="";}
+let toastTimer=null;
+function toast(msg,undoFn){
+  const t=$("#toast");t.textContent=msg;
+  if(undoFn){const b=document.createElement("button");b.textContent="Undo";b.onclick=()=>{t.classList.remove("show");undoFn();};t.appendChild(b);}
+  t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),undoFn?4500:1600);
+}
+
+/* ---------- boot ---------- */
+load();purge();render();
+$("#newtask").onclick=()=>{composing?closeComposer():openComposer();};
+setInterval(()=>{purge();if(showDone)render();},60000);
+</script>
+
+</body>
+</html>
